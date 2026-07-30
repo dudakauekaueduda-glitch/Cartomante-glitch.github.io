@@ -130,10 +130,10 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="cartaz">Cartaz</button>
-    <button class="tab-btn" data-tab="chat">Chat</button>
-    <button class="tab-btn" data-tab="precos">Preços</button>
-    <button class="tab-btn" data-tab="tarot">Tarot</button>
+    <button class="tab-btn active" data-tab="cartaz"><span class="tab-icon">🂡</span>Cartaz</button>
+    <button class="tab-btn" data-tab="chat"><span class="tab-icon">💬</span>Chat</button>
+    <button class="tab-btn" data-tab="precos"><span class="tab-icon">💰</span>Preços</button>
+    <button class="tab-btn" data-tab="tarot"><span class="tab-icon">🔮</span>Tarot</button>
   </div>
 
   <div class="wrap">
@@ -209,56 +209,9 @@
       </div>
     </div>
 
-    <!-- ---- Tarot (baralho cigano, 3 leituras grátis) ---- -->
+    <!-- ---- Tarot (baralho cigano, 3 leituras grátis) — carregado de tarot.html ---- -->
     <div id="panelTarot" class="tab-panel hidden">
-      <div class="t-plays-meter">
-        <span>Leituras disponíveis</span>
-        <div class="t-plays-dots" id="tPlaysDots"></div>
-      </div>
-
-      <!-- SCREEN: HOME -->
-      <section class="t-screen t-active" id="t-screen-home">
-        <div class="t-categories" id="tCategories"></div>
-        <div class="t-locked-msg" id="tLockedMsg" style="display:none;">
-          Suas <strong>três leituras</strong> já foram feitas. As cartas falaram o que tinham a dizer por hoje — deixe essas respostas assentarem antes de voltar a consultá-las.
-        </div>
-      </section>
-
-      <!-- SCREEN: SHUFFLE -->
-      <section class="t-screen t-shuffle-screen" id="t-screen-shuffle">
-        <button class="t-back-link" id="tBackFromShuffle">← voltar às perguntas</button>
-        <div class="t-chosen-label" id="tChosenLabel">—</div>
-
-        <div class="t-deck-area" id="tDeckArea">
-          <div class="t-deck-card"></div>
-          <div class="t-deck-card"></div>
-          <div class="t-deck-card"></div>
-          <div class="t-deck-card"></div>
-          <div class="t-deck-card"></div>
-        </div>
-
-        <div class="t-shuffle-status" id="tShuffleStatus">&nbsp;</div>
-        <button class="t-btn" id="tStartShuffleBtn">Clique para embaralhar</button>
-      </section>
-
-      <!-- SCREEN: READING -->
-      <section class="t-screen" id="t-screen-reading">
-        <div class="t-reading-header">
-          <div class="t-chosen-label" id="tReadingLabel">—</div>
-        </div>
-
-        <div class="t-fan" id="tFan"></div>
-        <div class="t-phases" id="tPhases"></div>
-
-        <div class="t-synthesis" id="tSynthesis">
-          <div class="t-synthesis-label">O que as cartas deixam claro</div>
-          <div class="t-synthesis-text" id="tSynthesisText"></div>
-        </div>
-
-        <div class="t-reading-actions">
-          <button class="t-btn t-btn-ghost" id="tNewReadingBtn">Nova pergunta</button>
-        </div>
-      </section>
+      <iframe id="tarotFrame" src="tarot.html" title="Sussurro das Cartas — Tarot" loading="lazy"></iframe>
     </div>
   </div>
 

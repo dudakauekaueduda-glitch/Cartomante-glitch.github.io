@@ -259,10 +259,12 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
 
 .whats{
   position:fixed; right:22px; bottom:22px; z-index:6; display:flex; align-items:center; gap:10px;
-  text-decoration:none; background:var(--indigo); border:1px solid var(--line); padding:12px 18px 12px 12px;
+  flex-direction:row-reverse;
+  text-decoration:none; background:var(--indigo); border:1px solid var(--line); padding:12px 10px 12px 18px;
   border-radius:999px; box-shadow:0 10px 30px rgba(0,0,0,0.5); color:var(--cream); font-size:14px;
   transition:transform .25s ease, box-shadow .25s ease;
 }
+.whats .txt{ text-align:right; }
 .whats:hover{ transform:translateY(-3px); box-shadow:0 14px 36px rgba(37,211,102,0.25); }
 .whats .icon-wrap{ width:40px; height:40px; border-radius:50%; background:#25D366; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; }
 .whats .icon-wrap::before{ content:''; position:absolute; inset:-6px; border-radius:50%; border:2px solid #25D366; opacity:0.6; animation:pulse 2.2s ease-out infinite; }
@@ -372,15 +374,16 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
 }
 
 /* ---- botão de baixar app (robô) ---- */
-.dl-wrap{ position:fixed; right:22px; bottom:96px; z-index:6; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+.dl-wrap{ position:fixed; right:24px; bottom:98px; z-index:6; display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
 .fab-round{
-  width:52px; height:52px; border-radius:50%; border:1px solid var(--line);
+  width:58px; height:58px; border-radius:50%; border:1px solid var(--line);
   background:linear-gradient(140deg, var(--gold), var(--ember)); color:var(--void);
-  font-size:1.5rem; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.5);
-  display:flex; align-items:center; justify-content:center;
+  padding:0; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
   transition:transform .25s ease, box-shadow .25s ease;
 }
 .fab-round:hover{ transform:translateY(-3px) scale(1.04); }
+.fab-icon-img{ width:70%; height:70%; object-fit:contain; pointer-events:none; }
 .dl-pop{
   width:220px; background:var(--indigo); border:1px solid var(--line); border-radius:16px;
   padding:16px; box-shadow:0 20px 50px -12px rgba(0,0,0,0.65); animation:rise .2s var(--ease);
@@ -395,6 +398,6 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
   .row3 .field:last-child{ grid-column:1 / -1; }
   .hours{ gap:26px; }
   .whats .txt{ display:none; }
-  .whats{ padding:12px; }
+  .whats{ padding:12px 10px; }
   .welcome{ font-size:1.2rem; }
 }

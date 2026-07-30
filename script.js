@@ -62,6 +62,7 @@ resize(); requestAnimationFrame(drawStars);
 
 /* ---------------- Tarot card flip ---------------- */
 document.getElementById('tarotCard').addEventListener('click', function(){
+  if (isGuest){ exigirConta('jogar as cartas'); return; }
   this.classList.toggle('flipped');
 });
 
@@ -82,6 +83,7 @@ function setAuthMode(mode){
     : 'Ainda não tem conta? <a id="authSwitch">Criar conta</a>';
   document.getElementById('authSwitch').addEventListener('click', () => setAuthMode(mode === 'signup' ? 'login' : 'signup'));
   hideAuthErr();
+  hideGuestNotice();
 }
 document.getElementById('tabSignup').addEventListener('click', () => setAuthMode('signup'));
 document.getElementById('tabLogin').addEventListener('click', () => setAuthMode('login'));
@@ -168,6 +170,24 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
 
 /* ================= ESTADO DE SESSÃO ================= */
 let perfilAtual = null;
+let isGuest = false;
+
+/* Convidado: entra sem conta, mas cartas e chat ficam bloqueados. */
+function hideGuestNotice(){
+  document.getElementById('guestNotice').classList.remove('show');
+}
+function exigirConta(motivo){
+  mostrarTela('auth');
+  setAuthMode('signup');
+  document.getElementById('guestNoticeText').textContent = 'Crie uma conta para ' + motivo + '.';
+  document.getElementById('guestNotice').classList.add('show');
+}
+document.getElementById('guestBtn').addEventListener('click', () => {
+  isGuest = true;
+  perfilAtual = { nome: 'Convidado', nick: 'Convidado' };
+  document.getElementById('greetName').textContent = 'Convidado';
+  mostrarTela('app');
+});
 
 function mostrarTela(tela){
   document.getElementById('screenAuth').classList.toggle('hidden', tela !== 'auth');
@@ -178,6 +198,7 @@ function mostrarTela(tela){
 if (firebaseReady){
   auth.onAuthStateChanged(async (user) => {
     if (user){
+      isGuest = false;
       const snap = await db.ref('usuarios/' + user.uid).once('value');
       perfilAtual = snap.val() || { nome: user.displayName || 'visitante' };
       document.getElementById('greetName').textContent = perfilAtual.nick || perfilAtual.nome || 'visitante';
@@ -235,10 +256,12 @@ document.addEventListener('click', (e) => {
 });
 document.getElementById('btnSairConta').addEventListener('click', () => {
   accountPop.classList.add('hidden');
+  if (isGuest){ isGuest = false; mostrarTela('auth'); setAuthMode('login'); return; }
   if (firebaseReady) auth.signOut();
 });
 document.getElementById('btnNovaConta').addEventListener('click', async () => {
   accountPop.classList.add('hidden');
+  isGuest = false;
   if (firebaseReady) await auth.signOut();
   setAuthMode('signup');
 });
@@ -406,6 +429,7 @@ setInterval(() => {
 }, 1000);
 
 function enviarMensagem(){
+  if (isGuest){ exigirConta('mandar mensagens no chat'); return; }
   const input = document.getElementById('chatInput');
   const texto = input.value.trim();
   const user = auth.currentUser;
@@ -435,6 +459,7 @@ let privateListenerAtual = null;
 let privateOutroUid = null;
 
 function abrirConversaPrivada(outroUid, outroNome){
+  if (isGuest){ exigirConta('conversar em privado'); return; }
   if (!auth.currentUser) return;
   privateOutroUid = outroUid;
   document.getElementById('privateNomeTitulo').textContent = 'Conversa com ' + outroNome;

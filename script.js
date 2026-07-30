@@ -205,6 +205,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+/* ================= BOTÃO DE BAIXAR APP (robô) ================= */
+const dlFab = document.getElementById('dlFab');
+const dlPop = document.getElementById('dlPop');
+if (dlFab && dlPop){
+  dlFab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const showing = dlPop.classList.toggle('hidden') === false;
+    dlFab.setAttribute('aria-expanded', String(showing));
+  });
+  document.addEventListener('click', (e) => {
+    if (!dlPop.classList.contains('hidden') && !dlPop.contains(e.target) && e.target !== dlFab){
+      dlPop.classList.add('hidden');
+      dlFab.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
 /* ================= MENU DE CONTA ================= */
 const accountPop = document.getElementById('accountPop');
 document.getElementById('accountBtn').addEventListener('click', (e) => {

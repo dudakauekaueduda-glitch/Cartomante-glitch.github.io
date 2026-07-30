@@ -351,10 +351,26 @@ function iniciais(nome){
   return (nome || '?').trim().charAt(0).toUpperCase();
 }
 
+// Diretório nick -> uid, construído a partir de quem já apareceu no chat público.
+// É o que permite o @menção encontrar a pessoa certa.
+const nomeParaUid = {};
+function chaveNome(nome){
+  return (nome || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function renderPublicMsg(key, val){
   const expiraEm = val.expiraEm || (val.ts + UMA_HORA);
   if (Date.now() >= expiraEm) return; // já expirou, nem mostra
   expiryMap[key] = expiraEm;
+
+  if (val.uid && val.uid !== 'bot') nomeParaUid[chaveNome(val.nome)] = val.uid;
+
+  // Mensagem com @menção: só o remetente e a pessoa marcada enxergam.
+  if (val.mencionadoUid){
+    const souRemetente = auth.currentUser && val.uid === auth.currentUser.uid;
+    const souMencionado = auth.currentUser && val.mencionadoUid === auth.currentUser.uid;
+    if (!souRemetente && !souMencionado) return;
+  }
 
   const win = document.getElementById('chatWindow');
   const isOwn = auth.currentUser && val.uid === auth.currentUser.uid;
@@ -379,8 +395,14 @@ function renderPublicMsg(key, val){
     nameEl.textContent = val.nome;
     col.appendChild(nameEl);
   }
+  if (val.mencionadoUid){
+    const tag = document.createElement('div');
+    tag.className = 'mention-tag';
+    tag.textContent = '🔒 só pra @' + val.mencionadoNome;
+    col.appendChild(tag);
+  }
   const bubble = document.createElement('div');
-  bubble.className = 'msg ' + (isBot ? 'bot' : (isOwn ? 'user' : 'bot'));
+  bubble.className = 'msg ' + (isBot ? 'bot' : (isOwn ? 'user' : 'bot')) + (val.mencionadoUid ? ' mention' : '');
   bubble.textContent = val.texto;
   col.appendChild(bubble);
 
@@ -431,13 +453,25 @@ setInterval(() => {
 function enviarMensagem(){
   if (isGuest){ exigirConta('mandar mensagens no chat'); return; }
   const input = document.getElementById('chatInput');
-  const texto = input.value.trim();
+  const texto = input.value.trim().slice(0, 300);
   const user = auth.currentUser;
   if (!texto || !chatPublicoRef || !user || !perfilAtual) return;
   input.value = '';
   const nome = perfilAtual.nick || perfilAtual.nome || 'visitante';
 
-  chatPublicoRef.push({ uid: user.uid, nome, texto, ts: Date.now() });
+  // @menção: se o texto citar um @nome que já apareceu no chat, a mensagem
+  // fica marcada como visível só pro remetente e pra pessoa marcada.
+  const payload = { uid: user.uid, nome, texto, ts: Date.now() };
+  const marcado = texto.match(/@([^\s@]+)/);
+  if (marcado){
+    const uidAlvo = nomeParaUid[chaveNome(marcado[1])];
+    if (uidAlvo && uidAlvo !== user.uid){
+      payload.mencionadoUid = uidAlvo;
+      payload.mencionadoNome = marcado[1];
+    }
+  }
+
+  chatPublicoRef.push(payload);
 
   if (contemPalavraRuim(texto)){
     chatPublicoRef.push({
@@ -492,7 +526,7 @@ function renderPrivateMsg(val){
 
 function enviarPrivada(){
   const input = document.getElementById('privateInput');
-  const texto = input.value.trim();
+  const texto = input.value.trim().slice(0, 300);
   if (!texto || !privateRefAtual || !auth.currentUser) return;
   input.value = '';
   privateRefAtual.push({ de: auth.currentUser.uid, texto, ts: Date.now() });

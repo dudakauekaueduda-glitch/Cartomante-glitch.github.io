@@ -259,7 +259,7 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
 .days b{ color:var(--gold-soft); font-weight:500; }
 
 .whats{
-  position:fixed; right:22px; bottom:22px; z-index:6; display:flex; align-items:center; gap:10px;
+  position:fixed; right:22px; bottom:22px; z-index:25; display:flex; align-items:center; gap:10px;
   flex-direction:row-reverse;
   text-decoration:none; background:var(--indigo); border:1px solid var(--line); padding:12px 10px 12px 18px;
   border-radius:999px; box-shadow:0 10px 30px rgba(0,0,0,0.5); color:var(--cream); font-size:14px;
@@ -310,6 +310,8 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
 .msg.user{ background:linear-gradient(135deg, var(--gold), #a9793f); color:var(--void); border-bottom-right-radius:4px; }
 .msg.bot{ background:var(--indigo-3); border:1px solid var(--line); color:var(--cream); border-bottom-left-radius:4px; }
 .msg.system{ align-self:center; font-size:12px; color:var(--ember); font-style:italic; }
+.msg.mention{ border:1px dashed var(--gold-soft); }
+.mention-tag{ font-size:10px; letter-spacing:0.05em; color:var(--gold-soft); margin-bottom:3px; }
 .chat-input{ display:flex; gap:10px; margin-top:12px; }
 .chat-input input{
   flex:1; background:var(--indigo-3); border:1px solid var(--line); border-radius:999px;
@@ -375,7 +377,7 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
 }
 
 /* ---- botão de baixar app (robô) ---- */
-.dl-wrap{ position:fixed; right:22px; bottom:100px; z-index:6; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.dl-wrap{ position:fixed; right:22px; bottom:100px; z-index:25; display:flex; flex-direction:column; align-items:center; gap:10px; }
 .fab-round{
   width:58px; height:58px; border-radius:50%; border:1px solid var(--line);
   background:linear-gradient(140deg, var(--gold), var(--ember)); color:var(--void);

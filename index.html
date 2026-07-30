@@ -173,7 +173,7 @@
       <div class="chat-timer">🕐 Mensagens somem em <span id="chatTimer">—:—</span></div>
       <div class="chat-window" id="chatWindow"></div>
       <div class="chat-input">
-        <input type="text" id="chatInput" placeholder="Escreva sua mensagem...">
+        <input type="text" id="chatInput" placeholder="Escreva sua mensagem..." maxlength="300">
         <button id="chatSend">Enviar</button>
       </div>
     </div>
@@ -198,6 +198,9 @@
           <div class="price-row"><span class="label">Pergunta futuro</span><span class="price">R$ 8,00</span></div>
           <div class="price-row"><span class="label">Pergunta passado, presente e futuro</span><span class="price">R$ 16,00</span></div>
           <div class="price-row"><span class="label">Pergunta sobrenatural</span><span class="price">R$ 14,40</span></div>
+          <div class="price-row"><span class="label">Pergunta de família</span><span class="price">R$ 5,00</span></div>
+          <div class="price-row"><span class="label">Pergunta de saúde</span><span class="price">R$ 5,50</span></div>
+          <div class="price-row"><span class="label">Pergunta de dinheiro</span><span class="price">R$ 6,00</span></div>
         </div>
       </div>
     </div>
@@ -277,7 +280,7 @@
     <p class="modal-sub">Conversa privada — essas mensagens não são apagadas.</p>
     <div class="chat-window private-window" id="privateWindow"></div>
     <div class="chat-input">
-      <input type="text" id="privateInput" placeholder="Escreva sua mensagem...">
+      <input type="text" id="privateInput" placeholder="Escreva sua mensagem..." maxlength="300">
       <button id="privateSend">Enviar</button>
     </div>
     <button class="modal-close" id="closePrivate">Fechar</button>

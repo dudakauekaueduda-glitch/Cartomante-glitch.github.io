@@ -217,12 +217,14 @@ if (firebaseReady){
 /* ================= TABS ================= */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    if (tab === 'tarot' && isGuest){ exigirConta('jogar o tarot'); return; }
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    const tab = btn.dataset.tab;
     document.getElementById('panelCartaz').classList.toggle('hidden', tab !== 'cartaz');
     document.getElementById('panelChat').classList.toggle('hidden', tab !== 'chat');
     document.getElementById('panelPrecos').classList.toggle('hidden', tab !== 'precos');
+    document.getElementById('panelTarot').classList.toggle('hidden', tab !== 'tarot');
   });
 });
 
@@ -352,8 +354,9 @@ function iniciais(nome){
 }
 
 // Diretório nick -> uid, construído a partir de quem já apareceu no chat público.
-// É o que permite o @menção encontrar a pessoa certa.
+// É o que permite o @menção encontrar a pessoa certa (e alimenta o painel de sugestão).
 const nomeParaUid = {};
+const nomeExibicao = {}; // chave -> nome com acentuação original, pra mostrar no painel
 function chaveNome(nome){
   return (nome || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -363,7 +366,16 @@ function renderPublicMsg(key, val){
   if (Date.now() >= expiraEm) return; // já expirou, nem mostra
   expiryMap[key] = expiraEm;
 
-  if (val.uid && val.uid !== 'bot') nomeParaUid[chaveNome(val.nome)] = val.uid;
+  if (val.uid && val.uid !== 'bot'){
+    nomeParaUid[chaveNome(val.nome)] = val.uid;
+    nomeExibicao[chaveNome(val.nome)] = val.nome;
+  }
+
+  // Mensagem gigante que passou de algum jeito do limite: o bot apaga.
+  if (val.texto && val.texto.length > 300){
+    if (chatPublicoRef) chatPublicoRef.child(key).remove();
+    return;
+  }
 
   // Mensagem com @menção: só o remetente e a pessoa marcada enxergam.
   if (val.mencionadoUid){
@@ -487,6 +499,52 @@ document.getElementById('chatInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') enviarMensagem();
 });
 
+/* ---- painel de sugestão do @menção ---- */
+const mentionPop = document.getElementById('mentionPop');
+const chatInputEl = document.getElementById('chatInput');
+
+function fecharMentionPop(){
+  mentionPop.classList.add('hidden');
+  mentionPop.innerHTML = '';
+}
+
+chatInputEl.addEventListener('input', () => {
+  const valor = chatInputEl.value;
+  const cursor = chatInputEl.selectionStart;
+  const antesCursor = valor.slice(0, cursor);
+  const m = antesCursor.match(/@([^\s@]*)$/);
+  if (!m){ fecharMentionPop(); return; }
+
+  const filtro = chaveNome(m[1]);
+  const meuNome = perfilAtual ? chaveNome(perfilAtual.nick || perfilAtual.nome) : '';
+  const candidatos = Object.keys(nomeExibicao)
+    .filter(chave => chave !== meuNome && chave.startsWith(filtro))
+    .map(chave => nomeExibicao[chave]);
+
+  if (!candidatos.length){ fecharMentionPop(); return; }
+
+  mentionPop.innerHTML = '';
+  candidatos.slice(0, 6).forEach(nome => {
+    const item = document.createElement('div');
+    item.className = 'mention-pop-item';
+    item.textContent = '@' + nome;
+    item.addEventListener('click', () => {
+      const inicioArroba = cursor - m[0].length;
+      chatInputEl.value = valor.slice(0, inicioArroba) + '@' + nome + ' ' + valor.slice(cursor);
+      fecharMentionPop();
+      chatInputEl.focus();
+    });
+    mentionPop.appendChild(item);
+  });
+  mentionPop.classList.remove('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (!mentionPop.classList.contains('hidden') && !mentionPop.contains(e.target) && e.target !== chatInputEl){
+    fecharMentionPop();
+  }
+});
+
 /* ================= CONVERSA PRIVADA (não expira) ================= */
 let privateRefAtual = null;
 let privateListenerAtual = null;
@@ -540,4 +598,217 @@ document.getElementById('closePrivate').addEventListener('click', () => {
   document.getElementById('privateModal').classList.add('hidden');
   if (privateRefAtual && privateListenerAtual) privateRefAtual.off('child_added', privateListenerAtual);
   privateRefAtual = null; privateListenerAtual = null;
+});
+
+/* ================= TAROT — baralho cigano, 3 leituras grátis =================
+   Aba nova ao lado de "Preços". Convidado é bloqueado por exigirConta(). */
+
+const T_CARDS = [
+  {n:"Cavaleiro", e:"algo novo se aproxima depressa — uma notícia, uma visita ou uma virada de ritmo que muda o que parecia parado"},
+  {n:"Trevo", e:"uma pequena chance surge; não é o grande milagre, mas é a brecha que, aproveitada, muda o rumo do dia"},
+  {n:"Navio", e:"um deslocamento se anuncia — uma saída, uma mudança de rota ou um recomeço em outro lugar"},
+  {n:"Casa", e:"as bases se firmam: família, lar ou uma estrutura que sustenta tudo o que vem depois"},
+  {n:"Árvore", e:"o que cresce aqui é lento e vivo — saúde, raízes, um processo que não se apressa"},
+  {n:"Nuvens", e:"há névoa sobre o assunto: dúvida, um momento de não saber, e é preciso esperar clarear"},
+  {n:"Cobra", e:"cuidado com o que se disfarça de solução — sedução, desvio ou uma complicação escondida"},
+  {n:"Caixão", e:"um ciclo se fecha de verdade; não é fim triste, é o espaço vazio que abre lugar para o novo"},
+  {n:"Buquê", e:"um presente chega — beleza, reconhecimento, um motivo genuíno de gratidão"},
+  {n:"Foice", e:"um corte é necessário: decisão rápida, ruptura limpa, sem meio-termo"},
+  {n:"Chicote", e:"um padrão se repete — discussão, tensão ou um ciclo que insiste em voltar até ser encarado"},
+  {n:"Pássaros", e:"muitas vozes ao mesmo tempo: conversa, inquietação, ou uma parceria que precisa de escuta"},
+  {n:"Criança", e:"um começo simples e sincero, sem o peso do passado — só o primeiro passo"},
+  {n:"Raposa", e:"é hora de agir com esperteza — cautela no trabalho, discrição, um passo bem calculado"},
+  {n:"Urso", e:"força e proteção entram em cena — coragem, autoridade, algo que finalmente segura a barra"},
+  {n:"Estrela", e:"uma luz de orientação aparece — esperança concreta, direção clara, inspiração que guia"},
+  {n:"Cegonha", e:"uma mudança está a caminho — renovação, virada de fase, algo se transforma por dentro"},
+  {n:"Cachorro", e:"lealdade real se mostra — amizade, apoio sincero, alguém que permanece"},
+  {n:"Torre", e:"há distância a ser respeitada — isolamento necessário, uma instituição, ou a visão de cima"},
+  {n:"Jardim", e:"a vida social entra em foco — encontros, exposição, um espaço compartilhado com outros"},
+  {n:"Montanha", e:"um obstáculo concreto se ergue — atraso, bloqueio, algo que exige contorno, não força"},
+  {n:"Caminhos", e:"uma escolha real se apresenta — duas direções, e nenhuma decisão é neutra"},
+  {n:"Ratos", e:"algo se desgasta aos poucos — perda pequena, estresse, um vazamento de energia"},
+  {n:"Coração", e:"o sentimento verdadeiro aparece — amor, afeto genuíno, o que realmente importa"},
+  {n:"Anel", e:"um compromisso se firma — contrato, ciclo que se fecha em aliança, continuidade"},
+  {n:"Livro", e:"há algo ainda não revelado — conhecimento oculto, um segredo, um capítulo a estudar"},
+  {n:"Carta", e:"uma comunicação decisiva chega — mensagem, documento, palavra que muda o quadro"},
+  {n:"Homem", e:"uma energia ativa entra na cena — decisão, ação, presença marcante"},
+  {n:"Mulher", e:"uma energia receptiva conduz — intuição, cuidado, presença que sustenta"},
+  {n:"Lírio", e:"maturidade e paz se instalam — serenidade, experiência, calma que só o tempo dá"},
+  {n:"Sol", e:"clareza e sucesso iluminam o caminho — vitalidade, reconhecimento, um sim evidente"},
+  {n:"Lua", e:"o reconhecimento emocional chega — intuição validada, sensibilidade, um chamado interno"},
+  {n:"Chave", e:"a solução está ao alcance — certeza, destravamento, a resposta que faltava"},
+  {n:"Peixes", e:"abundância entra em fluxo — dinheiro, prosperidade, recursos que voltam a circular"},
+  {n:"Âncora", e:"estabilidade se firma — trabalho, permanência, algo que finalmente se fixa"},
+  {n:"Cruz", e:"uma provação com sentido se apresenta — destino, fé, um peso que carrega aprendizado"}
+];
+
+const T_CATEGORIES = [
+  {
+    key:'ano', num:'I', title:'Como vai ser meu ano', desc:'Uma leitura de cinco tempos sobre o ano que se desenrola à sua frente.',
+    phases:['O que abre o ano','O que se desenrola em seguida','O centro da questão — o que mais pesa','O que ainda vai se mover','Como o ano se fecha']
+  },
+  {
+    key:'melhorar', num:'II', title:'O que devo fazer para me melhorar', desc:'As cartas apontam o que reconhecer, soltar e cultivar.',
+    phases:['O que reconhecer em você','O que já não serve e pode ser solto','O que vale cultivar','Onde buscar apoio','O passo seguinte']
+  },
+  {
+    key:'espirito', num:'III', title:'Qual meu tipo de espiritualidade', desc:'Um olhar sobre como você se conecta com o que não se vê.',
+    phases:['Sua raiz espiritual','Como você se conecta ao invisível','O que bloqueia essa conexão','Seu dom natural','Para onde essa jornada caminha']
+  },
+  {
+    key:'vidapassada', num:'IV', title:'Como foi minha vida passada', desc:'As cartas reconstroem o eco de quem você já foi.',
+    phases:['Quem você foi','A marca que ficou em você','A lição que essa vida deixou','O que se repete hoje','O que finalmente foi encerrado']
+  }
+];
+
+const T_MAX_PLAYS = 3;
+let tPlaysUsed = 0;
+let tCurrentCategory = null;
+
+function tRenderCategories(){
+  const catsEl = document.getElementById('tCategories');
+  catsEl.innerHTML = '';
+  T_CATEGORIES.forEach(cat=>{
+    const div = document.createElement('div');
+    div.className = 't-cat-card';
+    div.innerHTML = `<span class="t-cat-num">${cat.num}</span><div class="t-cat-title">${cat.title}</div><div class="t-cat-desc">${cat.desc}</div>`;
+    div.addEventListener('click', ()=> tOpenShuffle(cat));
+    catsEl.appendChild(div);
+  });
+}
+tRenderCategories();
+
+function tRenderPlaysMeter(){
+  const dotsEl = document.getElementById('tPlaysDots');
+  dotsEl.innerHTML = '';
+  for(let i=0;i<T_MAX_PLAYS;i++){
+    const d = document.createElement('div');
+    d.className = 't-play-dot' + (i < tPlaysUsed ? ' used' : '');
+    dotsEl.appendChild(d);
+  }
+  const locked = tPlaysUsed >= T_MAX_PLAYS;
+  document.getElementById('tCategories').style.display = locked ? 'none' : 'grid';
+  document.getElementById('tLockedMsg').style.display = locked ? 'block' : 'none';
+}
+tRenderPlaysMeter();
+
+function tShowScreen(id){
+  document.querySelectorAll('#panelTarot .t-screen').forEach(s=>s.classList.remove('t-active'));
+  document.getElementById(id).classList.add('t-active');
+}
+
+function tOpenShuffle(cat){
+  tCurrentCategory = cat;
+  document.getElementById('tChosenLabel').textContent = cat.title;
+  document.getElementById('tShuffleStatus').innerHTML = '&nbsp;';
+  document.getElementById('tDeckArea').classList.remove('shuffling');
+  const btn = document.getElementById('tStartShuffleBtn');
+  btn.disabled = false;
+  btn.textContent = 'Clique para embaralhar';
+  tShowScreen('t-screen-shuffle');
+}
+
+document.getElementById('tBackFromShuffle').addEventListener('click', ()=>{
+  tRenderPlaysMeter();
+  tShowScreen('t-screen-home');
+});
+
+document.getElementById('tStartShuffleBtn').addEventListener('click', function(){
+  if(tPlaysUsed >= T_MAX_PLAYS) return;
+  const btn = this;
+  btn.disabled = true;
+  const deckArea = document.getElementById('tDeckArea');
+  const statusEl = document.getElementById('tShuffleStatus');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  deckArea.classList.add('shuffling');
+  let secondsLeft = 15;
+  statusEl.textContent = 'embaralhando... ' + secondsLeft + 's';
+
+  const tick = setInterval(()=>{
+    secondsLeft--;
+    if(secondsLeft > 0){
+      statusEl.textContent = 'embaralhando... ' + secondsLeft + 's';
+    } else {
+      statusEl.textContent = 'as cartas se aquietam...';
+    }
+  }, 1000);
+
+  const totalWait = reduced ? 2200 : 15000;
+  setTimeout(()=>{
+    clearInterval(tick);
+    deckArea.classList.remove('shuffling');
+    tPlaysUsed++;
+    tStartReading(tCurrentCategory);
+  }, totalWait);
+});
+
+function tDrawFive(){
+  const idx = [...Array(T_CARDS.length).keys()];
+  for(let i=idx.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0,5).map(i=>T_CARDS[i]);
+}
+
+function tStartReading(cat){
+  const drawn = tDrawFive();
+  document.getElementById('tReadingLabel').textContent = cat.title;
+
+  const fan = document.getElementById('tFan');
+  fan.innerHTML = '';
+  drawn.forEach((card, i)=>{
+    const el = document.createElement('div');
+    el.className = 't-rcard';
+    el.innerHTML = `
+      <div class="t-rcard-inner">
+        <div class="t-rface t-back"></div>
+        <div class="t-rface t-front">
+          <div class="t-rnum">${cat.phases[i] ? (i+1) : ''}</div>
+          <div class="t-rname">${card.n}</div>
+        </div>
+      </div>`;
+    fan.appendChild(el);
+  });
+
+  const phasesEl = document.getElementById('tPhases');
+  phasesEl.innerHTML = '';
+  drawn.forEach((card, i)=>{
+    const row = document.createElement('div');
+    row.className = 't-phase-row';
+    row.innerHTML = `
+      <div class="t-phase-idx">${String(i+1).padStart(2,'0')}</div>
+      <div>
+        <div class="t-phase-label">${cat.phases[i]}</div>
+        <div class="t-phase-cardname">${card.n}</div>
+        <div class="t-phase-text">A carta indica que ${card.e}.</div>
+      </div>`;
+    phasesEl.appendChild(row);
+  });
+
+  const synthEl = document.getElementById('tSynthesis');
+  synthEl.classList.remove('show');
+  document.getElementById('tSynthesisText').textContent =
+    `Do início ao fechamento, o caminho vai de ${drawn[0].e} até ${drawn[4].e}.`;
+
+  tShowScreen('t-screen-reading');
+  tRenderPlaysMeter();
+
+  const rcards = fan.querySelectorAll('.t-rcard');
+  rcards.forEach((el, i)=>{
+    setTimeout(()=> el.classList.add('flipped'), 350 + i*260);
+  });
+
+  const rows = phasesEl.querySelectorAll('.t-phase-row');
+  rows.forEach((row, i)=>{
+    setTimeout(()=> row.classList.add('show'), 1400 + i*300);
+  });
+
+  setTimeout(()=> synthEl.classList.add('show'), 1400 + rows.length*300 + 300);
+}
+
+document.getElementById('tNewReadingBtn').addEventListener('click', ()=>{
+  tRenderPlaysMeter();
+  tShowScreen('t-screen-home');
 });

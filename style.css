@@ -435,5 +435,36 @@ h2.hero-title em{ font-style:italic; color:var(--cream); }
   min-height:760px; background:transparent;
 }
 
+/* ---- Cadeado de desbloqueio pago do Tarot ---- */
+.tarot-lock{
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  padding:52px 26px 44px; border-radius:18px;
+  background:radial-gradient(ellipse at 50% -10%, var(--indigo-3), var(--indigo) 65%);
+  border:1px solid var(--line);
+  box-shadow:0 20px 50px -18px rgba(0,0,0,0.55);
+}
+.tarot-lock .lock-icon{
+  width:84px; height:84px; margin-bottom:18px;
+  filter:drop-shadow(0 8px 18px rgba(201,161,90,0.35));
+  animation:lockFloat 3.4s ease-in-out infinite;
+}
+.lock-svg{ width:100%; height:100%; }
+.lock-svg .lock-shackle{ stroke:var(--gold-soft); stroke-width:4; transition:transform .5s var(--ease); transform-origin:20px 30px; }
+.lock-svg .lock-body{ fill:url(#lockGradFallback); fill:var(--gold); }
+.lock-svg .lock-key{ fill:var(--void); }
+.tarot-lock:hover .lock-svg .lock-shackle{ transform:rotate(-18deg) translateX(-2px); }
+@keyframes lockFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+
+.lock-title{
+  font-family:var(--disp); font-style:italic; font-weight:600; font-size:1.4rem;
+  color:var(--cream); margin-bottom:10px;
+}
+.lock-desc{
+  color:var(--lilac); font-size:0.92rem; line-height:1.6; max-width:360px; margin-bottom:22px;
+}
+.lock-desc b{ color:var(--gold-soft); }
+.tarot-lock .btn{ max-width:320px; }
+.lock-note{ margin-top:14px; font-size:0.78rem; color:var(--lilac); opacity:0.75; min-height:1em; }
+
 /* ---- ícones nas abas ---- */
 .tab-icon{ margin-right:6px; font-size:.95em; }

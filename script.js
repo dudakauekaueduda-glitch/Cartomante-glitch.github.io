@@ -3,7 +3,7 @@
    Firebase (auth + realtime database) + UI
    ============================================================ */
 
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAqgPPmWG6cM3xpFLtOBjQJ8PmAVV7YgaY",
@@ -87,6 +87,7 @@ function setAuthMode(mode){
   document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
   document.getElementById('signupFields').classList.toggle('hidden', mode !== 'signup');
   if (modeThumb) modeThumb.classList.toggle('right', mode === 'login');
+  document.getElementById('forgotLine').classList.toggle('hidden', mode !== 'login');
   document.getElementById('authSub').textContent = mode === 'signup' ? 'Crie sua conta para entrar na mesa.' : 'Que bom te ver de novo.';
   document.getElementById('authSubmitLabel').textContent = mode === 'signup' ? 'Criar conta' : 'Entrar';
   document.getElementById('authFoot').innerHTML = mode === 'signup'
@@ -291,6 +292,112 @@ document.getElementById('verifySairBtn').addEventListener('click', async () => {
   setAuthMode('login');
 });
 
+/* ================= ESQUECI SENHA =================
+   Importante: o Firebase Auth não deixa trocar a senha de alguém que
+   não está logado usando só um código de 6 dígitos (isso exigiria um
+   servidor próprio com permissão de administrador). O jeito seguro e
+   sem precisar de servidor é o Firebase mandar um LINK por e-mail: a
+   pessoa toca no link, cai direto na tela "Criar nova senha" aqui
+   dentro do app, e troca a senha. Pra esse link abrir dentro do app
+   (e não numa página genérica do Firebase), confirme no Firebase
+   Console → Authentication → Settings → Authorized domains, se o
+   domínio onde esse site fica hospedado está autorizado. */
+
+function hideForgotMsgs(){
+  document.getElementById('forgotErr').classList.remove('show');
+  document.getElementById('forgotOk').classList.remove('show');
+}
+
+document.getElementById('forgotBtn').addEventListener('click', () => {
+  hideForgotMsgs();
+  document.getElementById('forgotFormWrap').classList.remove('hidden');
+  document.getElementById('forgotEmail').value = document.getElementById('fEmail').value || '';
+  mostrarTela('forgot');
+});
+
+document.getElementById('forgotBackBtn').addEventListener('click', () => {
+  mostrarTela('auth');
+  setAuthMode('login');
+});
+
+document.getElementById('forgotSendBtn').addEventListener('click', async () => {
+  hideForgotMsgs();
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email){
+    document.getElementById('forgotErrText').textContent = 'Digite seu e-mail.';
+    document.getElementById('forgotErr').classList.add('show');
+    return;
+  }
+  if (!firebaseReady){
+    document.getElementById('forgotErrText').textContent = 'Não foi possível conectar ao servidor agora. Verifique sua internet.';
+    document.getElementById('forgotErr').classList.add('show');
+    return;
+  }
+  const btn = document.getElementById('forgotSendBtn');
+  const spinner = document.getElementById('forgotSpinner');
+  btn.disabled = true; spinner.classList.add('show');
+  try{
+    await auth.sendPasswordResetEmail(email, {
+      url: window.location.origin + window.location.pathname,
+      handleCodeInApp: true
+    });
+    document.getElementById('forgotOkText').textContent = 'Link enviado! Abra seu e-mail e toque no link para criar a nova senha.';
+    document.getElementById('forgotOk').classList.add('show');
+    document.getElementById('forgotFormWrap').classList.add('hidden');
+  } catch(err){
+    document.getElementById('forgotErrText').textContent = traduzErro(err.code);
+    document.getElementById('forgotErr').classList.add('show');
+  } finally {
+    btn.disabled = false; spinner.classList.remove('show');
+  }
+});
+
+// Se a pessoa chegou aqui pelo link do e-mail (?mode=resetPassword&oobCode=...),
+// já mostra direto a tela de criar nova senha.
+(function checarLinkRecuperacaoSenha(){
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode');
+  const oobCode = params.get('oobCode');
+  if (mode !== 'resetPassword' || !oobCode || !firebaseReady) return;
+
+  auth.verifyPasswordResetCode(oobCode).then((email) => {
+    document.getElementById('novaSenhaEmailAlvo').textContent = email;
+    mostrarTela('novaSenha');
+
+    document.getElementById('novaSenhaBtn').addEventListener('click', async () => {
+      const novaSenha = document.getElementById('novaSenhaInput').value;
+      const errBox = document.getElementById('novaSenhaErr');
+      const errText = document.getElementById('novaSenhaErrText');
+      errBox.classList.remove('show');
+      if (!novaSenha || novaSenha.length < 6){
+        errText.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+        errBox.classList.add('show');
+        return;
+      }
+      const btn = document.getElementById('novaSenhaBtn');
+      const spinner = document.getElementById('novaSenhaSpinner');
+      btn.disabled = true; spinner.classList.add('show');
+      try{
+        await auth.confirmPasswordReset(oobCode, novaSenha);
+        document.getElementById('novaSenhaOkText').textContent = 'Senha atualizada! Redirecionando para entrar...';
+        document.getElementById('novaSenhaOk').classList.add('show');
+        setTimeout(() => {
+          window.location.href = window.location.origin + window.location.pathname;
+        }, 1800);
+      } catch(err){
+        errText.textContent = traduzErro(err.code);
+        errBox.classList.add('show');
+      } finally {
+        btn.disabled = false; spinner.classList.remove('show');
+      }
+    }, { once: true });
+  }).catch(() => {
+    // Link inválido ou expirado: volta pra tela de entrar.
+    mostrarTela('auth');
+    setAuthMode('login');
+  });
+})();
+
 /* ================= ESTADO DE SESSÃO ================= */
 let perfilAtual = null;
 let isGuest = false;
@@ -315,6 +422,8 @@ document.getElementById('guestBtn').addEventListener('click', () => {
 function mostrarTela(tela){
   document.getElementById('screenAuth').classList.toggle('hidden', tela !== 'auth');
   document.getElementById('screenVerify').classList.toggle('hidden', tela !== 'verify');
+  document.getElementById('screenForgot').classList.toggle('hidden', tela !== 'forgot');
+  document.getElementById('screenNovaSenha').classList.toggle('hidden', tela !== 'novaSenha');
   document.getElementById('screenApp').classList.toggle('hidden', tela !== 'app');
   hideSplash();
 }
@@ -355,6 +464,7 @@ if (firebaseReady){
       document.getElementById('greetName').textContent = perfilAtual.nick || perfilAtual.nome || 'visitante';
       document.getElementById('setNome').value = perfilAtual.nome || '';
       mostrarTela('app');
+      mostrarTarot();
     } else {
       mostrarTela('auth');
     }
@@ -376,6 +486,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('panelChat').classList.toggle('hidden', tab !== 'chat');
     document.getElementById('panelPrecos').classList.toggle('hidden', tab !== 'precos');
     document.getElementById('panelTarot').classList.toggle('hidden', tab !== 'tarot');
+    if (tab === 'tarot') mostrarTarot();
   });
 });
 
@@ -767,8 +878,57 @@ document.getElementById('closePrivate').addEventListener('click', () => {
   privateRefAtual = null; privateListenerAtual = null;
 });
 
-/* ================= TAROT ==================
-   O conteúdo do Tarot agora vive em tarot.html, carregado via iframe
+/* ================= TAROT — DESBLOQUEIO PAGO =================
+   O tarot fica atrás de um cadeado até a pessoa pagar R$ 1,00.
+   O estado "pago" fica salvo em usuarios/{uid}/tarotPago no Firebase,
+   então uma vez desbloqueado continua liberado nos próximos acessos.
+
+   IMPORTANTE — isso ainda precisa da sua parte:
+   Não dá pra cobrar de verdade sem ligar a um meio de pagamento real
+   (Mercado Pago, PagSeguro, PIX, etc). Cole abaixo o link de cobrança
+   de R$ 1,00 gerado por esse serviço (ex.: "Link de pagamento" do
+   Mercado Pago). Configure lá a URL de retorno de sucesso apontando
+   pra esta mesma página com "?tarot_pago=1" no final — assim, quando
+   a pessoa pagar e voltar, o app libera o tarot sozinho. Sem esse
+   link configurado, o botão avisa que ainda falta configurar. */
+const TAROT_PAGAMENTO_LINK = ''; // <- cole aqui o link de pagamento (R$ 1,00)
+
+const tarotLock = document.getElementById('tarotLock');
+const tarotFrameEl = document.getElementById('tarotFrame');
+const tarotPayBtn = document.getElementById('tarotPayBtn');
+const tarotLockNote = document.getElementById('tarotLockNote');
+
+function mostrarTarot(){
+  const pago = !!(perfilAtual && perfilAtual.tarotPago);
+  if (tarotLock) tarotLock.classList.toggle('hidden', pago);
+  if (tarotFrameEl) tarotFrameEl.classList.toggle('hidden', !pago);
+}
+
+if (tarotPayBtn){
+  tarotPayBtn.addEventListener('click', () => {
+    if (!TAROT_PAGAMENTO_LINK){
+      if (tarotLockNote) tarotLockNote.textContent = 'Pagamento ainda não configurado — fale com quem cuida do app.';
+      return;
+    }
+    window.location.href = TAROT_PAGAMENTO_LINK;
+  });
+}
+
+// Voltou do pagamento com sucesso (?tarot_pago=1): libera e salva no Firebase.
+(function checarRetornoPagamentoTarot(){
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('tarot_pago') !== '1' || !firebaseReady) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  auth.onAuthStateChanged(async (user) => {
+    if (!user || !db) return;
+    await db.ref('usuarios/' + user.uid + '/tarotPago').set(true);
+    if (perfilAtual) perfilAtual.tarotPago = true;
+    mostrarTarot();
+  });
+})();
+
+/* ================= TAROT — IFRAME ==================
+   O conteúdo do Tarot vive em tarot.html, carregado via iframe
    dentro de #panelTarot. Aqui só escutamos a altura real da página
    para o iframe crescer/encolher sem barra de rolagem dupla. */
 window.addEventListener('message', (event) => {

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Administrativo | Fashion_Baay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body data-theme="light">
+
+<div class="admin-wrap">
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="admin-logo">Fashion<span>_Baay</span><small>Admin</small></div>
+    <nav class="admin-nav">
+      <a href="#" class="admin-link active" data-panel="dashboard"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="#" class="admin-link" data-panel="produtos"><i class="fa-solid fa-shirt"></i> Produtos</a>
+      <a href="#" class="admin-link" data-panel="pedidos"><i class="fa-solid fa-box"></i> Pedidos</a>
+      <a href="#" class="admin-link" data-panel="clientes"><i class="fa-solid fa-users"></i> Clientes</a>
+      <a href="#" class="admin-link" data-panel="cupons"><i class="fa-solid fa-ticket"></i> Cupons</a>
+      <a href="#" class="admin-link" data-panel="promocoes"><i class="fa-solid fa-fire"></i> Promoções</a>
+      <a href="#" class="admin-link" data-panel="categorias"><i class="fa-solid fa-layer-group"></i> Categorias</a>
+      <a href="#" class="admin-link" data-panel="estoque"><i class="fa-solid fa-warehouse"></i> Estoque</a>
+      <a href="#" class="admin-link" data-panel="relatorios"><i class="fa-solid fa-chart-line"></i> Relatórios</a>
+    </nav>
+    <a href="index.html" class="admin-back"><i class="fa-solid fa-arrow-left"></i> Voltar à loja</a>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button class="icon-btn" id="adminMenuBtn"><i class="fa-solid fa-bars"></i></button>
+      <h1 id="panelTitle">Dashboard</h1>
+      <div class="admin-topbar-actions">
+        <button class="icon-btn" id="adminDarkToggle"><i class="fa-solid fa-moon"></i></button>
+        <div class="admin-user"><i class="fa-solid fa-circle-user"></i> <span>Admin</span></div>
+      </div>
+    </header>
+
+    <div class="admin-content">
+
+      <!-- DASHBOARD -->
+      <section class="admin-panel active" data-panel-content="dashboard">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-icon" style="background:var(--gradient)"><i class="fa-solid fa-sack-dollar"></i></div><div><span>Vendas do mês</span><strong>R$ 18.420,00</strong><small class="up"><i class="fa-solid fa-arrow-trend-up"></i> +12,4%</small></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#22c55e"><i class="fa-solid fa-box"></i></div><div><span>Pedidos</span><strong>284</strong><small class="up"><i class="fa-solid fa-arrow-trend-up"></i> +8,1%</small></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#f59e0b"><i class="fa-solid fa-users"></i></div><div><span>Clientes</span><strong>2.497</strong><small class="up"><i class="fa-solid fa-arrow-trend-up"></i> +5,6%</small></div></div>
+          <div class="stat-card"><div class="stat-icon" style="background:#ef4444"><i class="fa-solid fa-triangle-exclamation"></i></div><div><span>Estoque baixo</span><strong>6 itens</strong><small class="down">Atenção necessária</small></div></div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel-card">
+            <h3>Vendas — últimos 7 dias</h3>
+            <div class="bar-chart" id="salesChart"></div>
+          </div>
+          <div class="panel-card">
+            <h3>Categorias mais vendidas</h3>
+            <div class="donut-legend" id="catLegend"></div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <h3>Últimos Pedidos</h3>
+          <div class="table-wrap">
+            <table class="admin-table" id="recentOrdersTable"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUTOS -->
+      <section class="admin-panel" data-panel-content="produtos">
+        <div class="panel-toolbar">
+          <input type="text" class="admin-search" id="adminProductSearch" placeholder="Buscar produto...">
+          <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Novo Produto</button>
+        </div>
+        <div class="panel-card">
+          <div class="table-wrap"><table class="admin-table" id="productsTable"></table></div>
+        </div>
+      </section>
+
+      <!-- PEDIDOS -->
+      <section class="admin-panel" data-panel-content="pedidos">
+        <div class="panel-toolbar">
+          <input type="text" class="admin-search" placeholder="Buscar pedido...">
+          <select class="admin-select"><option>Todos os status</option><option>Pendente</option><option>Em trânsito</option><option>Entregue</option><option>Cancelado</option></select>
+        </div>
+        <div class="panel-card">
+          <div class="table-wrap"><table class="admin-table" id="ordersTable"></table></div>
+        </div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section class="admin-panel" data-panel-content="clientes">
+        <div class="panel-toolbar">
+          <input type="text" class="admin-search" placeholder="Buscar cliente...">
+        </div>
+        <div class="panel-card">
+          <div class="table-wrap"><table class="admin-table" id="clientsTable"></table></div>
+        </div>
+      </section>
+
+      <!-- CUPONS -->
+      <section class="admin-panel" data-panel-content="cupons">
+        <div class="panel-toolbar">
+          <span></span>
+          <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Novo Cupom</button>
+        </div>
+        <div class="panel-card">
+          <div class="table-wrap"><table class="admin-table" id="couponsTable"></table></div>
+        </div>
+      </section>
+
+      <!-- PROMOÇÕES -->
+      <section class="admin-panel" data-panel-content="promocoes">
+        <div class="panel-toolbar">
+          <span></span>
+          <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Promoção</button>
+        </div>
+        <div class="promo-cards" id="promoCards"></div>
+      </section>
+
+      <!-- CATEGORIAS -->
+      <section class="admin-panel" data-panel-content="categorias">
+        <div class="panel-toolbar">
+          <span></span>
+          <button class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nova Categoria</button>
+        </div>
+        <div class="cat-admin-grid" id="catAdminGrid"></div>
+      </section>
+
+      <!-- ESTOQUE -->
+      <section class="admin-panel" data-panel-content="estoque">
+        <div class="panel-card">
+          <h3>Controle de Estoque</h3>
+          <div class="table-wrap"><table class="admin-table" id="stockTable"></table></div>
+        </div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section class="admin-panel" data-panel-content="relatorios">
+        <div class="dash-grid">
+          <div class="panel-card">
+            <h3>Faturamento Mensal</h3>
+            <div class="bar-chart" id="revenueChart"></div>
+          </div>
+          <div class="panel-card">
+            <h3>Resumo</h3>
+            <ul class="report-list">
+              <li><span>Ticket médio</span><strong>R$ 168,90</strong></li>
+              <li><span>Taxa de conversão</span><strong>3,4%</strong></li>
+              <li><span>Produtos mais vendidos</span><strong>Vestido Midi Floral</strong></li>
+              <li><span>Cupom mais usado</span><strong>BAAY10</strong></li>
+              <li><span>Devoluções no mês</span><strong>4 (1,4%)</strong></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/products.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

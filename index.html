@@ -109,6 +109,7 @@
     </form>
 
     <p class="foot-line" id="authFoot">Já tem conta? <a id="authSwitch">Entrar</a></p>
+    <p class="foot-line hidden" id="forgotLine"><a id="forgotBtn">Esqueci minha senha</a></p>
     <p class="foot-line"><a id="guestBtn">Entrar como convidado</a></p>
   </div>
 </div>
@@ -137,6 +138,59 @@
     </button>
     <p class="foot-line"><a id="verifyResendBtn">Reenviar código</a></p>
     <p class="foot-line"><a id="verifySairBtn">Sair / usar outra conta</a></p>
+  </div>
+</div>
+
+<!-- ================= RECUPERAR SENHA ================= -->
+<div id="screenForgot" class="shell hidden">
+  <div class="panel">
+    <div class="brand">
+      <div class="glyph">✦</div>
+      <h1>Recuperar senha</h1>
+      <div class="under"></div>
+    </div>
+    <p class="subtext">Coloque seu e-mail e enviaremos um link para criar uma nova senha.</p>
+
+    <div class="err-box" id="forgotErr">⚠️ <span id="forgotErrText"></span></div>
+    <div class="info-box" id="forgotOk">✓ <span id="forgotOkText"></span></div>
+
+    <div id="forgotFormWrap">
+      <div class="field">
+        <label>E-mail (Gmail)</label>
+        <input type="email" id="forgotEmail" placeholder="seunome@gmail.com" autocomplete="email">
+      </div>
+      <button type="button" class="btn" id="forgotSendBtn">
+        <span class="spinner" id="forgotSpinner"></span>
+        <span>Enviar link de recuperação</span>
+      </button>
+    </div>
+
+    <p class="foot-line"><a id="forgotBackBtn">Voltar para entrar</a></p>
+  </div>
+</div>
+
+<!-- ================= NOVA SENHA (aberta a partir do link do e-mail) ================= -->
+<div id="screenNovaSenha" class="shell hidden">
+  <div class="panel">
+    <div class="brand">
+      <div class="glyph">✦</div>
+      <h1>Criar nova senha</h1>
+      <div class="under"></div>
+    </div>
+    <p class="subtext">Digite a nova senha para <b id="novaSenhaEmailAlvo">sua conta</b>.</p>
+
+    <div class="err-box" id="novaSenhaErr">⚠️ <span id="novaSenhaErrText"></span></div>
+    <div class="info-box" id="novaSenhaOk">✓ <span id="novaSenhaOkText"></span></div>
+
+    <div class="field">
+      <label>Nova senha</label>
+      <input type="password" id="novaSenhaInput" placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <button type="button" class="btn" id="novaSenhaBtn">
+      <span class="spinner" id="novaSenhaSpinner"></span>
+      <span>Salvar nova senha</span>
+    </button>
   </div>
 </div>
 
@@ -237,9 +291,34 @@
       </div>
     </div>
 
-    <!-- ---- Tarot (baralho cigano, 3 leituras grátis) — carregado de tarot.html ---- -->
+    <!-- ---- Tarot (baralho cigano) — carregado de tarot.html, com desbloqueio pago ---- -->
     <div id="panelTarot" class="tab-panel hidden">
-      <iframe id="tarotFrame" src="tarot.html" title="Sussurro das Cartas — Tarot" loading="lazy"></iframe>
+      <div class="tarot-lock" id="tarotLock">
+        <div class="lock-icon">
+          <svg viewBox="0 0 64 64" class="lock-svg">
+            <path class="lock-shackle" d="M20 30 V20 a12 12 0 0 1 24 0 V30" fill="none"/>
+            <rect class="lock-body" x="14" y="30" width="36" height="26" rx="5"/>
+            <circle class="lock-key" cx="32" cy="41" r="3.6"/>
+            <rect class="lock-key" x="30.2" y="43" width="3.6" height="7"/>
+          </svg>
+        </div>
+        <h3 class="lock-title">O Tarot está guardado</h3>
+        <p class="lock-desc">Desbloqueie o Sussurro das Cartas com um pagamento único de <b>R$ 1,00</b> via PIX.</p>
+
+        <div class="pix-box">
+          <span class="pix-label">Chave PIX (celular)</span>
+          <div class="pix-key-row">
+            <span class="pix-key" id="pixKeyText">12996728086</span>
+            <button type="button" class="pix-copy-btn" id="pixCopyBtn">Copiar</button>
+          </div>
+          <span class="pix-copied" id="pixCopiedMsg">Chave copiada!</span>
+        </div>
+
+        <p class="lock-desc">Depois de pagar, envie o print do comprovante pelo WhatsApp para liberar seu acesso.</p>
+        <button class="btn" id="tarotPayBtn">✅ Já paguei — enviar comprovante</button>
+        <p class="lock-note" id="tarotLockNote"></p>
+      </div>
+      <iframe id="tarotFrame" class="hidden" src="tarot.html" title="Sussurro das Cartas — Tarot" loading="lazy"></iframe>
     </div>
   </div>
 
@@ -340,3 +419,4 @@
 <script src="script.js"></script>
 </body>
 </html>
+

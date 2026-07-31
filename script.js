@@ -15,6 +15,17 @@ const firebaseConfig = {
   appId: "1:1056039006721:web:7df8605c6dc1b77b460600"
 };
 
+/* ---- EmailJS: envia o código de verificação por e-mail ----
+   Crie uma conta grátis em https://www.emailjs.com/, crie um "Service"
+   (ex.: Gmail) e um "Template" com as variáveis {{email}}, {{passcode}} e {{time}},
+   depois troque os 3 valores abaixo pelos seus. */
+const EMAILJS_PUBLIC_KEY = 'A2Pfc5yt0mFKs4kCV';
+const EMAILJS_SERVICE_ID = 'service_di1xxsi';
+const EMAILJS_TEMPLATE_ID = 'template_yc3ld0p';
+try{
+  if (typeof emailjs !== 'undefined') emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+} catch(e){ console.error('Falha ao iniciar o EmailJS:', e); }
+
 let auth = null, db = null, firebaseReady = false;
 try{
   if (typeof firebase !== 'undefined'){
@@ -148,8 +159,9 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
       const cred = await auth.createUserWithEmailAndPassword(email, senha);
       await cred.user.updateProfile({ displayName: nome });
       await db.ref('usuarios/' + cred.user.uid).set({
-        nome, nick: nick || nome, ano, mes, dia, genero, email
+        nome, nick: nick || nome, ano, mes, dia, genero, email, emailVerificado: false
       });
+      await enviarCodigoVerificacao(cred.user.uid, email);
       if (chatPublicoRef){
         chatPublicoRef.push({
           uid: 'bot', nome: 'Cartomancia',
@@ -166,6 +178,117 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
   } finally {
     btn.disabled = false; spinner.classList.remove('show');
   }
+});
+
+/* ================= VERIFICAÇÃO DE E-MAIL (código) ================= */
+const CODIGO_VALIDADE_MS = 10 * 60 * 1000; // 10 minutos
+
+function gerarCodigo6(){
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+// Gera um código novo, salva em /verificacoes/{uid} com prazo de validade,
+// e manda por e-mail via EmailJS. Reaproveitada no cadastro e no "reenviar".
+async function enviarCodigoVerificacao(uid, email){
+  const codigo = gerarCodigo6();
+  await db.ref('verificacoes/' + uid).set({
+    codigo, criadoEm: Date.now(), expiraEm: Date.now() + CODIGO_VALIDADE_MS
+  });
+  if (typeof emailjs === 'undefined') {
+    console.error('EmailJS não carregou — verifique a tag <script> no index.html.');
+    return;
+  }
+  await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    email, passcode: codigo, time: new Date(Date.now() + CODIGO_VALIDADE_MS).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  });
+}
+
+function showVerifyErr(msg){
+  document.getElementById('verifyOk').classList.remove('show');
+  document.getElementById('verifyErrText').textContent = msg;
+  document.getElementById('verifyErr').classList.add('show');
+}
+function showVerifyOk(msg){
+  document.getElementById('verifyErr').classList.remove('show');
+  document.getElementById('verifyOkText').textContent = msg;
+  document.getElementById('verifyOk').classList.add('show');
+}
+
+// "Confirmar código": compara o que a pessoa digitou com o que está salvo
+// em /verificacoes/{uid}, checando se ainda está dentro do prazo.
+document.getElementById('verifyCheckBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('verifyCheckBtn');
+  const spinner = document.getElementById('verifySpinner');
+  const digitado = document.getElementById('verifyCodigoInput').value.trim();
+  if (!digitado){ showVerifyErr('Digite o código recebido por e-mail.'); return; }
+
+  btn.disabled = true; spinner.classList.add('show');
+  try{
+    const user = auth.currentUser;
+    const snap = await db.ref('verificacoes/' + user.uid).once('value');
+    const dados = snap.val();
+
+    if (!dados){
+      showVerifyErr('Nenhum código pendente. Toque em "Reenviar código".');
+    } else if (Date.now() > dados.expiraEm){
+      showVerifyErr('Esse código expirou. Toque em "Reenviar código".');
+    } else if (String(digitado) !== String(dados.codigo)){
+      showVerifyErr('Código incorreto. Confira e tente de novo.');
+    } else {
+      await db.ref('usuarios/' + user.uid + '/emailVerificado').set(true);
+      await db.ref('verificacoes/' + user.uid).remove();
+      showVerifyOk('E-mail confirmado! Entrando...');
+      isGuest = false;
+      const snapUser = await db.ref('usuarios/' + user.uid).once('value');
+      perfilAtual = snapUser.val() || { nome: user.displayName || 'visitante' };
+      document.getElementById('greetName').textContent = perfilAtual.nick || perfilAtual.nome || 'visitante';
+      document.getElementById('setNome').value = perfilAtual.nome || '';
+      mostrarTela('app');
+    }
+  } catch(err){
+    showVerifyErr('Não deu pra checar agora. Tente de novo.');
+  } finally {
+    btn.disabled = false; spinner.classList.remove('show');
+  }
+});
+
+// Espera 60s entre reenvios, pra não estourar a cota do EmailJS nem
+// deixar a pessoa clicando várias vezes achando que "bugou".
+const REENVIO_ESPERA_MS = 60 * 1000;
+let proximoReenvioLiberadoEm = 0;
+let reenvioIntervalo = null;
+
+function atualizarBotaoReenvio(){
+  const btn = document.getElementById('verifyResendBtn');
+  const restante = proximoReenvioLiberadoEm - Date.now();
+  if (restante > 0){
+    btn.classList.add('disabled');
+    btn.textContent = 'Aguarde ' + Math.ceil(restante / 1000) + 's pra reenviar';
+  } else {
+    btn.classList.remove('disabled');
+    btn.textContent = 'Reenviar código';
+    if (reenvioIntervalo){ clearInterval(reenvioIntervalo); reenvioIntervalo = null; }
+  }
+}
+
+document.getElementById('verifyResendBtn').addEventListener('click', async () => {
+  if (Date.now() < proximoReenvioLiberadoEm) return; // ainda em espera, ignora o clique
+  try{
+    const user = auth.currentUser;
+    await enviarCodigoVerificacao(user.uid, user.email);
+    showVerifyOk('Código reenviado.');
+    proximoReenvioLiberadoEm = Date.now() + REENVIO_ESPERA_MS;
+    atualizarBotaoReenvio();
+    reenvioIntervalo = setInterval(atualizarBotaoReenvio, 1000);
+  } catch(err){
+    showVerifyErr('Não deu pra reenviar agora. Tente de novo em instantes.');
+  }
+});
+
+document.getElementById('verifySairBtn').addEventListener('click', async () => {
+  await auth.signOut();
+  mostrarTela('auth');
+  setAuthMode('login');
 });
 
 /* ================= ESTADO DE SESSÃO ================= */
@@ -191,12 +314,40 @@ document.getElementById('guestBtn').addEventListener('click', () => {
 
 function mostrarTela(tela){
   document.getElementById('screenAuth').classList.toggle('hidden', tela !== 'auth');
+  document.getElementById('screenVerify').classList.toggle('hidden', tela !== 'verify');
   document.getElementById('screenApp').classList.toggle('hidden', tela !== 'app');
   hideSplash();
 }
 
 if (firebaseReady){
   auth.onAuthStateChanged(async (user) => {
+    // Convidado não passa por e-mail/senha, então não tem o que verificar.
+    if (user && !isGuest){
+      const snapVer = await db.ref('usuarios/' + user.uid + '/emailVerificado').once('value');
+      const verificado = snapVer.val() === true;
+      if (!verificado){
+        document.getElementById('verifyEmailAlvo').textContent = user.email || 'seu e-mail';
+        // Garante que sempre haja um código válido esperando quando a tela abre.
+        const snapCodigo = await db.ref('verificacoes/' + user.uid).once('value');
+        let codigoAtual = snapCodigo.val();
+        if (!codigoAtual || Date.now() > codigoAtual.expiraEm){
+          try{
+            await enviarCodigoVerificacao(user.uid, user.email);
+            codigoAtual = { criadoEm: Date.now() };
+          } catch(e){ console.error('Falha ao enviar código:', e); }
+        }
+        // Mantém o botão de reenviar em espera se o código ainda for recente.
+        if (codigoAtual && codigoAtual.criadoEm){
+          proximoReenvioLiberadoEm = codigoAtual.criadoEm + REENVIO_ESPERA_MS;
+          atualizarBotaoReenvio();
+          if (Date.now() < proximoReenvioLiberadoEm && !reenvioIntervalo){
+            reenvioIntervalo = setInterval(atualizarBotaoReenvio, 1000);
+          }
+        }
+        mostrarTela('verify');
+        return;
+      }
+    }
     if (user){
       isGuest = false;
       const snap = await db.ref('usuarios/' + user.uid).once('value');
@@ -372,7 +523,7 @@ function renderPublicMsg(key, val){
   }
 
   // Mensagem gigante que passou de algum jeito do limite: o bot apaga.
-  if (val.texto && val.texto.length > 300){
+  if (val.texto && val.texto.length > 200){
     if (chatPublicoRef) chatPublicoRef.child(key).remove();
     return;
   }
@@ -465,7 +616,7 @@ setInterval(() => {
 function enviarMensagem(){
   if (isGuest){ exigirConta('mandar mensagens no chat'); return; }
   const input = document.getElementById('chatInput');
-  const texto = input.value.trim().slice(0, 300);
+  const texto = input.value.trim().slice(0, 200);
   const user = auth.currentUser;
   if (!texto || !chatPublicoRef || !user || !perfilAtual) return;
   input.value = '';
@@ -497,6 +648,14 @@ function enviarMensagem(){
 document.getElementById('chatSend').addEventListener('click', enviarMensagem);
 document.getElementById('chatInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') enviarMensagem();
+});
+
+// Contador de caracteres ao vivo (chat público).
+const chatCharCount = document.getElementById('chatCharCount');
+document.getElementById('chatInput').addEventListener('input', function(){
+  const max = this.maxLength;
+  chatCharCount.textContent = this.value.length + '/' + max;
+  chatCharCount.classList.toggle('limit', this.value.length >= max);
 });
 
 /* ---- painel de sugestão do @menção ---- */
@@ -584,7 +743,7 @@ function renderPrivateMsg(val){
 
 function enviarPrivada(){
   const input = document.getElementById('privateInput');
-  const texto = input.value.trim().slice(0, 300);
+  const texto = input.value.trim().slice(0, 200);
   if (!texto || !privateRefAtual || !auth.currentUser) return;
   input.value = '';
   privateRefAtual.push({ de: auth.currentUser.uid, texto, ts: Date.now() });
@@ -593,6 +752,14 @@ function enviarPrivada(){
 document.getElementById('privateSend').addEventListener('click', enviarPrivada);
 document.getElementById('privateInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') enviarPrivada();
+});
+
+// Contador de caracteres ao vivo (conversa privada).
+const privateCharCount = document.getElementById('privateCharCount');
+document.getElementById('privateInput').addEventListener('input', function(){
+  const max = this.maxLength;
+  privateCharCount.textContent = this.value.length + '/' + max;
+  privateCharCount.classList.toggle('limit', this.value.length >= max);
 });
 document.getElementById('closePrivate').addEventListener('click', () => {
   document.getElementById('privateModal').classList.add('hidden');

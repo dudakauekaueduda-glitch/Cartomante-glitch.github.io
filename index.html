@@ -113,6 +113,33 @@
   </div>
 </div>
 
+<!-- ================= VERIFICAÇÃO DE E-MAIL (código) ================= -->
+<div id="screenVerify" class="shell hidden">
+  <div class="panel">
+    <div class="brand">
+      <div class="glyph">✦</div>
+      <h1>Confirme seu e-mail</h1>
+      <div class="under"></div>
+    </div>
+    <p class="subtext">Enviamos um código de 6 dígitos para <b id="verifyEmailAlvo">seu e-mail</b>. Digite abaixo pra liberar sua conta.</p>
+
+    <div class="err-box" id="verifyErr">⚠️ <span id="verifyErrText"></span></div>
+    <div class="info-box" id="verifyOk">✓ <span id="verifyOkText"></span></div>
+
+    <div class="field">
+      <label>Código</label>
+      <input type="text" id="verifyCodigoInput" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+    </div>
+
+    <button type="button" class="btn" id="verifyCheckBtn">
+      <span class="spinner" id="verifySpinner"></span>
+      <span>Confirmar código</span>
+    </button>
+    <p class="foot-line"><a id="verifyResendBtn">Reenviar código</a></p>
+    <p class="foot-line"><a id="verifySairBtn">Sair / usar outra conta</a></p>
+  </div>
+</div>
+
 <!-- ================= APP SCREEN ================= -->
 <div id="screenApp" class="hidden">
   <div class="app-header">
@@ -176,9 +203,10 @@
       <div class="chat-input-wrap">
         <div class="mention-pop hidden" id="mentionPop"></div>
         <div class="chat-input">
-          <input type="text" id="chatInput" placeholder="Escreva sua mensagem..." maxlength="300">
+          <input type="text" id="chatInput" placeholder="Escreva sua mensagem..." maxlength="200">
           <button id="chatSend">Enviar</button>
         </div>
+        <div class="char-count" id="chatCharCount">0/200</div>
       </div>
     </div>
 
@@ -289,9 +317,10 @@
     <p class="modal-sub">Conversa privada — essas mensagens não são apagadas.</p>
     <div class="chat-window private-window" id="privateWindow"></div>
     <div class="chat-input">
-      <input type="text" id="privateInput" placeholder="Escreva sua mensagem..." maxlength="300">
+      <input type="text" id="privateInput" placeholder="Escreva sua mensagem..." maxlength="200">
       <button id="privateSend">Enviar</button>
     </div>
+    <div class="char-count" id="privateCharCount">0/200</div>
     <button class="modal-close" id="closePrivate">Fechar</button>
   </div>
 </div>
@@ -307,6 +336,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
